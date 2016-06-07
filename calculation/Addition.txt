@@ -1,0 +1,3 @@
+// To add two numbers
+
+Formula:- Total = a + b
