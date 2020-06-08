@@ -1,0 +1,2 @@
+#!/bin/bash
+grails --offline clean ; grails --offline compile; grails --offline compile; 

@@ -1,0 +1,419 @@
+git branch --merged master lists branches merged into master
+
+git branch --merged lists branches merged into HEAD (i.e. tip of current branch)
+
+git branch --no-merged lists branches that have not been merged
+
+By default this applies to only the local branches. The -a flag will show both local and remote branches, and the -r flag shows only the remote branches.
+
+--- git list branches by commit date - most recent at top ---- 
+
+git for-each-ref --sort=-committerdate refs/heads/
+
+-With date
+
+git for-each-ref --sort='-committerdate' --format='%(refname)%09%(committerdate)' refs/heads | sed -e 's-refs/heads/--'
+
+3acd1c3d-11a2-49f1-bdd5-24cec0e1994c
+##git config remem password - default 15 mins
+git config --global credential.helper cache
+
+##Set up Merge Tool 'diffmerge' for visual merges -------------------
+
+http://twobitlabs.com/2011/08/install-diffmerge-git-mac-os-x/
+
+Summary:
+
+git config --global diff.tool diffmerge
+git config --global difftool.diffmerge.cmd 'diffmerge "$LOCAL" "$REMOTE"'
+git config --global merge.tool diffmerge
+git config --global mergetool.diffmerge.cmd 'diffmerge --merge --result="$MERGED" "$LOCAL" "$(if test -f "$BASE"; then echo "$BASE"; else echo "$LOCAL"; fi)" "$REMOTE"'
+git config --global mergetool.diffmerge.trustExitCode true
+
+##Restore certain changed files from merge ##
+
+git reset -- _layouts/default.html
+git checkout MERGE_HEAD -- _layouts/default.html
+
+more...
+http://gitready.com/advanced/2009/02/25/keep-either-file-in-merge-conflicts.html
+
+##Rename a remote branch without checkout ##
+
+git push <remote-name> <remote-name>/<old-branch-name>:refs/heads/<new-branch-name> :<old-branch-name>
+
+##Rename a local branch ##
+
+git branch -m old-name new-name
+
+# Change remote name from 'origin' to 'destination'
+
+git remote rename origin destination
+
+##Undo a git merge that has been pushed to the server --------------------------
+
+git reset --hard [sha-commit-before-merge]
+git push [origin] [branch] --force
+
+--force to overwrite the branch
+
+##GIT STASH KE MAJE --------------------------
+
+git stash show -p stash@{0} --will show stash at 0 position, first to pop
+
+git stash save --keep-index -- will save stash and also keep it locally
+
+##list Git tags by date --------------------------
+
+git log --tags --simplify-by-decoration --pretty="format:%ci %d"
+git tag -l -n (tag with messages)
+##list Git branches contains commit --------------------------
+
+git branch --contains <commit>
+
+##Git Diff Staged Files ----------------
+git diff --cached
+##Git Tagging --------------------------
+
+Simple Tag: git tag tag-name
+List Tags: git tag
+Push Tags: git push remote tag-name
+Annotated Tags: git tag -a tag-name -m "message about it"
+
+-f replace the tag if exists
+
+##Create/Apply patch from Git Diff --------------------------
+
+git diff --no-prefix > ageing-fix.patch
+patch -p1 < ageing-fix.patch
+
+##Git Difftool --------------------------
+
+git config --global diff.tool vimdiff
+git config --global difftool.prompt false
+git config --global alias.d diff
+git config --global alias.dt difftool
+git config --global alias.dfw 'diff --ignore-space-change'
+git config --global rebase.stat true
+git config --global alias.dcache 'diff --cached'
+
+I have df aliased to diff and dt aliased to difftool. 
+Also, typing :qa in Vim will cycle to the next changeset without saving anything.
+
+##If you want to commit on top of the current HEAD --------------------------
+If you want to commit on top of the current HEAD with the exact state at a different commit, undoing all the intermediate commits, then you can use reset to create the correct state of the index to make the commit.
+
+# reset the index to the desired tree
+git reset 56e05fced
+
+# move the branch pointer back to the previous HEAD
+git reset --soft HEAD@{1}
+
+git commit -m "Revert to 56e05fced"
+
+# Update working copy to reflect the new commit
+git reset --hard
+
+##Git Rebase --------------------------
+To rebase last 3 commits (Combine them as one)
+
+git rebase -i HEAD~3 
+
+More on git rebase http://feeding.cloud.geek.nz/2010/08/combining-multiple-commits-into-one.html
+
+To cherry-pick/merge a range of commits after a given commit to another branch from a feature branch
+
+git rebase --onto iis-jb-discounts 567d094020608c3185dbc9b73536123d6bb76d63 _discounts-feature-rebase
+
+##Initialize a GIT repository from a branch
+
+git remote add verifone_repo git@github.com:emilc/verifone.git
+git push verifone_repo release3-1:master
+
+##Find what changed since last release
+
+git log --reverse --name-status HEAD...v1.3.1 | grep -e ^[MAD][[:space:]]
+
+---------------------------------Checkout a Tag---------------------------------
+
+git checkout <TAG_NAME>   
+
+If you want to do some work, it is better to create branch by:
+
+git checkout <TAG_NAME> -b <BRANCH_NAME>  
+
+---------------------------------View the commits that exists in master but not merged into release branch ---------------------------------
+
+git log master ^release --no-merges
+git log master ^release --reverse (in chronological order)
+---------------------------------View the change history of all branches in a graphical tree---------------------------------
+
+git log --graph --full-history --all --color --pretty=format:"%x1b[31m%h%x09%x1b[32m%d%x1b[0m%x20%s"
+
+---------------------------------View the change history of a file---------------------------------
+gitk filename (if gitk installed)
+
+git log -p filename
+git log --follow -p filename
+
+---------------------------------git merge without commit, so that you can still pick and chose what to commit---------------------------------
+
+git merge --no-commit --no-ff branchx
+
+---------------------------------git show files changed in last commit---------------------------------
+
+git show --pretty="format:" --name-only 6fd3a084a739f7c570b9b00babd62bd997fbdf06
+
+---------------------------------make an existing git branch track a remote branch---------------------------------
+
+As of Git 1.7.0:
+
+git branch --set-upstream foo upstream/foo
+
+That will cause Git to make 'local' foo track 'remote' branch upstream/foo.
+
+---------------------------------Git checkout and track the remote branch---------------------------------
+
+git checkout --track -b edge origin/edge
+
+* So that you can do git pull/push directly without arguments
+
+---------------------------------Git: Undo last commit & put changes back in working tree---------------------------------
+
+git drop/undo local unstaged changes: git checkout -- . (do NOT forget the drop at the end)
+
+git reset --soft HEAD^
+
+git reset --hard HEAD (This will undo add/modify and reset the tree)
+
+git reset --hard origin/master (discard all local changes/commits)
+
+---------------------------------Reset a file to a previous commit---------------------------------
+
+git reset <commit hash> <filename>
+
+---------------------------------Get jBilling src---------------------------------
+
+$ git clone git://jbilling.git.sourceforge.net/gitroot/jbilling/jbilling src
+
+---------------------------------Upgrade GIT---------------------------------
+
+$ git clone git://git.kernel.org/pub/scm/git/git.git
+
+---------------------------------Project Specific/Global Username and Email details for git---------------------------------
+
+git config --global user.name "Vikas Bodani"
+git config --global user.email vikasb@jbilling.com
+git config --global color.diff auto
+git config --global color.status auto
+git config --global color.branch auto
+git config --global core.autocrlf=false
+git config --global core.whitespace = trailing-space,space-before-tab
+git config --global alias.co checkout
+git config --global alias.br branch
+git config --global alias.s status
+git config --global alias.undo reset --hard
+git config --global alias.restore 'reset --hard HEAD^'
+git config --global alias.timelog "!log --pretty=format:'%Cred%h%Creset - %C(yellow)%ae%Creset - %s%Creset'"
+git config --global alias.pruneall "!git fsck; git prune; git gc"
+git config --global alias.trackingbr "!git config branch.`git name-rev --name-only HEAD`.merge"
+git config --global alias.conflicts "!git ls-files -u | cut -f 2 | sort -u"
+git config --global alias.unadd 'reset HEAD --'
+git config --global alias.unstage 'reset HEAD --'
+git config --global alias.tree 'log --oneline --decorate --graph'
+git config --global alias.oneline 'log --oneline --decorate'
+git config --global alias.df = diff
+git config --global alias.dt = difftool
+git config --global alias.dfw 'diff --ignore-space-change'
+
+git fsck && git prune && git gc
+
+git config --global alias.conflicts "!git ls-files -u | cut -f 2 | sort -u"
+
+Remove Alias
+git config --global --unset alias.mylias
+---------------------------------------------------------------------------------------------------
+
+use --global option with command 'git config' if the above information applies to all projects.
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+
+use --global option with command 'git config' if the above information applies to all projects.
+
+---------------------------------Undo all modifications---------------------------------
+
+git checkout -f
+
+---------------------------------for getting the patch of most recent commit---------------------------------
+git format-patch -1
+
+git format-patch -1 <commit>
+
+---------------------------------apply patch---------------------------------
+
+http://www.gitready.com/intermediate/2009/03/04/pick-out-individual-commits.html
+
+---------------------------------------------------------------------------------------------------
+
+git remote add blue_repo git@github.com:emilc/blue.git
+
+--- Now you need to fetch the content of this remote repository in your local box:
+______________________________________________________________________________________________________________
+ 
+git fetch blue_repo 
+
+--- It is helpful to have a branch in your local box that points to the master branch of the project: 
+______________________________________________________________________________________________________________
+
+git checkout -b  blue blue_repo/master
+
+git commit -a 
+
+git push core core:master 
+git push blue_repo blue:master 
+
+--- Note how the command push works. This is the syntax: 
+______________________________________________________________________________________________________________
+
+git push repository local_branch:remote_branch  
+
+git checkout -b Primus Primus_repo/master
+
+---------------------------------GIT CHECKOUT BY DATE---------------------------------
+
+git checkout `git rev-list -n 1 --before="2009-07-27 13:37" master`
+
+--- Now try git status and your changes from previous commit should be placed back in the working tree 
+and the last commit should be missing from git log. ______________________________
+
+Reset the head of phobos to the same commit as origin/phobos
+
+git checkout phobos
+git reset --hard origin/phobos
+
+---------------------------------revision history---------------------------------
+
+git rev-list origin..HEAD = will show the commits that are in your current branch, but not origin -- i.e., 
+whether you're ahead of origin and by which commits.
+
+git rev-list HEAD..origin will show the opposite. 
+
+git branch -d branchname -- to delete a branch
+git branch -D branchname -- to force delete a branch
+
+---------------------------------Viewing information on the remote should look something like this:
+$ git remote show origin
+
+---------------------------------
+git checkout --track -b haml origin/haml
+
+You can also use a simpler version:
+
+git checkout -t origin/haml
+---------------------------------
+
+GIT HACK - http://jasonrudolph.com/blog/2009/02/25/git-tip-how-to-merge-specific-files-from-another-branch/
+
+The Simplest Thing That Could Possibly Work
+
+As it turns out, we're trying too hard. Our good friend git checkout is the right tool for the job.
+
+git checkout source_branch <paths>...
+
+We can simply give git checkout the name of the feature branch [1] and the paths to the specific files that we 
+want to add to our master branch.
+
+---------------------------------Find out Remote Tracking branch---------------------------------
+
+git config branch.`git name-rev --name-only HEAD`.remote
+
+---------------------------------View Git Log Filtered by User---------------------------------
+
+You don't need to use the the whole name
+
+git log --author="vikasbo"
+will match a commit made by "Vikas Bodani"
+
+---------------------------------git search commits for string---------------------------------
+
+-g, --walk-reflogs (Instead of walking the commit ancestry chain, walk reflog entries from the most recent one to older ones)
+
+So you could do this to find a particular string in a commit message that is dangling:
+
+[WORKS] git log -g --grep=search_term
+
+Alternatively, if you want to search the changes for a particular string, you could use the pickaxe search option, "-S":
+
+git log -g -Ssearch_for_this
+# this also works but may be slower, it only shows text-added results
+
+git grep search_for_this $(git log -g --pretty=format:%h)
+
+Git 1.7.4 will add the -G option, allowing you to pass -G<regexp> to find when a line containing <regexp> was moved, which -S cannot do. -S will only tell you when the total number of lines containing the string changed (i.e. adding/removing the string).
+
+Finally, you could use gitk to visualise the dangling commits with:
+
+gitk --all $(git log -g --pretty=format:%h)
+
+---------------------------------Restore a deleted file in a Git repo---------------------------------
+
+git rev-list -n 1 HEAD -- <file_path>
+Then checkout the version at the commit before.
+
+git checkout <deleting_commit>^ -- <file_path>
+Or in one command, if $file is the file in question.
+
+git checkout $(git rev-list -n 1 HEAD -- "$file")^ -- "$file"
+
+------------------------------------------------------------------
+ssh port forwarding..
+git clone git+ssh://localhost:1234/repos local_repos
+git clone on https
+git clone https://nikhilsharma@github.com/emilc/UltraFast.git jbilling
+
+-------##---------------------------------
+
+delete the most recent commit:
+
+git reset --hard HEAD~1
+Delete the most recent commit, without destroying the work you've done:
+
+git reset --soft HEAD~1
+
+--------------------- Git Key Finger Print-------------------------
+
+ssh-keygen -lf /etc/ssh/ssh_host_rsa_key.pub
+
+-------# delete commit history#---------------------------------
+
+If you want to delete all your commit history but keep the code in its current state, it is very safe to do it as in the following:
+
+Checkout
+
+git checkout --orphan latest_branch
+
+Add the files
+
+git add -u
+
+Commit the changes
+
+git commit -am "commit message"
+
+Delete the branch
+
+git branch -D master
+
+Rename the current branch to master
+
+git branch -m master
+
+Finally, force update your repository
+
+git push -f origin master
+
+Hope this helps. PS: this will not keep your old commit history around :)
+
+-------# delete commit history#---------------------------------
+

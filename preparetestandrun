@@ -1,0 +1,2 @@
+#!/bin/bash
+~/bin/grailscc && grails --offline prepare-test --hard --verbose --stacktrace && grails --offline -XX:+ShowMessageBoxOnError -reloading run-app

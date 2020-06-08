@@ -1,0 +1,242 @@
+All PSQL Commands: http://www.postgresql.org/docs/current/interactive/app-psql.html
+\C[onnect] [DBNAME] -user -host -port
+\du list all users/roles
+\l (list all databases)
+\d table_name (describe table)
+\dn (list schemas)
+\dp (list tables)
+\i filename (load file)
+\o [FILE] send all query results to file or |pipe
+
+---------------------------- KILL Connections from others ---------------------
+
+SELECT pg_terminate_backend(procpid) FROM pg_stat_activity WHERE procpid <> pg_backend_pid() AND datname = 'jbilling_test'; --my own id
+
+----------------------------postgres issue, unable to drop db, accessed by users ---------------------
+
+As of version 8.4, you can use pg_terminate_backend() to kill a connection. You have to be superuser to use this function. This works on all operating systems the same.
+
+SELECT 
+    pg_terminate_backend(procpid) 
+FROM 
+    pg_stat_activity 
+WHERE 
+    -- don't kill my own connection!
+    procpid <> pg_backend_pid()
+    -- don't kill the connections to other databases
+    AND datname = 'jbilling_test';
+
+//from 9.2 onwards, replace procpid with pid
+
+SELECT 
+    pg_terminate_backend(pid) 
+FROM 
+    pg_stat_activity 
+WHERE 
+    -- don't kill my own connection!
+    pid <> pg_backend_pid()
+    -- don't kill the connections to other databases
+    AND datname = 'jbilling_test';
+
+Before executing this query, you have to REVOKE the CONNECT privileges to avoid new connections:
+
+REVOKE CONNECT ON DATABASE dbname FROM PUBLIC, username;
+
+e.g.
+postgres=# select * from pg_stat_activity where datname ='jbilling_test';
+postgres=# select pg_terminate_backend(11584) from pg_stat_activity where procpid <> pg_backend_pid() and datname='jbilling_test';
+
+----------------------------Start postgres sql server--------------------------------------
+
+pg_ctl start -l logfile -D /usr/local/psql/data
+
+pg_ctl start -D /var/lib/pgsql/data
+
+or
+
+/etc/init.d/postgres restart
+
+or
+
+/etc/init.d/postgresql restart
+---------------------------- Create a Postgres sql user as super user --------------------------------------
+
+> createuser jbilling -s
+
+----------------------------How to export table data to file--------------------------------------
+
+copy base_user to '/home/training/jbilling/base_user.csv' csv;
+
+----------------------------Run an update or single SQL--------------------------------------
+not perfect.. this is still not error proof
+psql -U jbilling jbilling_test < echo 'alter table example add column abcd integer';
+
+-------------------------------Adding Auto Inc column 'id' in Postgres:----------------------
+CREATE SEQUENCE cdr_id_seq;
+ALTER TABLE cdr ADD id int UNIQUE;
+ALTER TABLE cdr ALTER COLUMN id SET DEFAULT NEXTVAL('cdr_id_seq');
+UPDATE cdr SET id = NEXTVAL('cdr_id_seq');
+-------------------------------LOAD CSV INTO POSTGRES----------------------------------------
+
+by using PostrgreSQL's COPY command. copy zip_codes from '/path/to/csv/ZIP_CODES.txt' DELIMITERS ',' CSV;
+The first argument to the COPY command (zip_codes in this example) is the table the data will be copied to. The second argument ('/path/to/csv/ZIP_CODES.txt') is the path to the CSV file. We indicate the delimiter (comma, in this case) by passing ',' to the DELIMITERS modifier of the COPY command.
+
+--------------------------------To find how many users logged into a database----------------
+
+select * from pg_stat_activity where datname='jbilling';
+
+--------------------------------T  ----------------
+
+----------------------------Create a new dump------------------------------------------------
+--with date
+pg_dump -c -U jbilling jbilling -f jbilling-database.`date +%F-%H%M`.sql
+
+pg_dump -c -U jbilling jbilling_test -f jbilling-database.`date +%F-%H%M`.sql
+
+--update data.sql
+pg_dump -U jbilling --clean jbilling > data.sql
+pg_dump -U jbilling --clean jbilling_test > sql/jbilling_test.sql 
+
+pg_dump -c -U qatest jbilling_qatest -f jbilling-qatest-database.`date +%F-%H%M`.sql
+
+
+sudo su postgres -c "psql template1 -c 'CREATE ROLE jbilling WITH LOGIN SUPERUSER CREATEDB CREATEROLE;'"
+
+\\Create Database
+CREATE DATABASE jbilling
+  WITH OWNER = jbilling
+       ENCODING = 'UTF8';
+GRANT CONNECT, TEMPORARY ON DATABASE jbilling_test TO public;
+GRANT ALL ON DATABASE jbilling_test TO jbilling;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO user_name;
+
+//Restore backup using pgrestore..
+pg_restore_8_4.exe -h localhost -p 5432 -U root -d jbilling_test -v "C:\Documents and Settings\vbodani\My Documents\WORK\jBilling\Redmine\476\jbilling_database_02092010.bkp"
+---------------------------------------------------------------------------------------------
+select password from base_user where user_name ='admin'
+
+///restored admin's password to 123qwe // < jb3x 
+update base_user set password = '46f94c8de14fb36680850768ff1b7f2a' where user_name='admin';
+
+SHA-1 Password string for 'admin' 25b61b2518b79ee1d34b684ad281dbbfcbaf8d01
+
+L@ubega#10 '$2a$10$Lkrrjg7Id4JyNB.SdH.D2.prvnTAHQ57YJvYUGnHikF.E/W8Vd/We'
+WebData@123 '$2a$10$zeScy5VlagovhZ0hs8bAzOKmEhDRsOAl7dl0asOztWRioXW9S8VgC'
+
+
+---------------------------------------------------------------------------------------------
+copy ..\conf\jbilling-database.xml.bkup ..\conf\jbilling-database.xml
+
+----------------------------Drop, Create & Load jbilling_test databases ------------------
+
+dropdb -U jbilling jbilling_test
+createdb -U jbilling jbilling_test 
+psql -U jbilling jbilling_test < sql/jbilling_test.sql
+
+//old technique
+psql -U postgres postgres < c:\bin\drop-create-jbilling-test.sql
+psql -U postgres postgres < c:\bin\drop-create-jbilling-2-2.sql
+psql -U jbilling jbilling_2_2 < sql/jbilling_test.sql
+
+---------------------------------------------------------------------------------------------
+COPY Data from CSV/Import data from CSV
+
+COPY master_data FROM 'C:\Users\vikasdev\Documents\master_data_psqlified.csv' WITH DELIMITER ',' CSV HEADER;
+
+----------------------------Copy all table names to file----------------------------
+\o [FILE] send all query results to file or |pipe
+
+The sequence of commands will look like this:
+
+[wist@scifres ~]$ psql db
+Welcome to psql 8.3.6, the PostgreSQL interactive terminal
+
+db=>\o out.txt
+db=>\dt
+db=>\q
+
+----------------------------  steps to reset the password for user name "postgres" ----------------------------
+
+1. In pg_hba.conf, insert or change the below line.
+from :
+local   all         postgres
+to
+local   all         postgres                          trust sameuser
+
+2. Restart PostgreSQL services in order for Step 1 changes to take effect :
+In Linux,
+/etc/init.d/postgresql-8.3 restart
+In FreeBSD,
+/usr/local/etc/rc.d/postgres restart
+
+or service postgresql restart
+
+3. Login to PostgreSQL on the local machine with the user name "postgres" to change the password :
+e.g.
+psql -U postgres
+
+4. At the "postgres=#" prompt, change the user name "postgres" password :
+e.g.
+ALTER USER postgres with password 'secure-password';
+
+5. Quit PostgreSQL interactive session by executing "\q", to exit
+
+--------------------------- postgres sql failed to start -----------------------------------------
+
+http://forums.fedoraforum.org/archive/index.php/t-167471.html
+
+suer postgres: su/training su - postgres
+
+initdb -D /var/lib/pgsql/data
+pg_ctl start -D /var/lib/pgsql/data
+
+---------------------------  ---------------------------------------
+
+Install Data Directory
+
+\bin\pgsqldatadir
+
+sudo -u postgres createuser -s $USER
+
+--------------------------- inspecting locks on db ----------------------------
+
+select locktype, database, relation, virtualtransaction, classid, mode, granted from pg_locks order by mode desc;
+
+SELECT datid, datname, procpid, usename, usesysid, application_name, client_addr, client_hostname, client_port, backend_start, xact_start, query_start, current_query FROM pg_stat_activity where waiting=true;
+
+
+Restore postgres superuser on postgres
+
+/usr/lib/postgresql/9.5/bin/postgres --single -D /var/lib/postgresql/9.5/main -c config_file=/etc/postgresql/9.5/main/postgresql.conf
+ALTER USER postgres SUPERUSER;
+CONTROL + D to quit
+
+---- TIMEZONE 
+Default value = 'UTC'
+
+Check existing value using: psql -c 'show timezone'
+
+To change, edit postgresql.conf
+
+/etc/postgresql/9.5/main/postgresql.conf
+
+edit values:
+timezone = 'AEST'
+log_timezone = 'AEST'
+
+-------------------------- PRODUCTION MONITORING -------------------
+
+https://russ.garrett.co.uk/2015/10/02/postgres-monitoring-cheatsheet/?utm_source=dbweekly&utm_medium=email
+
+-------------------------- SORT TABLES BY SIZE -------------------
+
+SELECT             
+   relname as "Table",
+   pg_size_pretty(pg_total_relation_size(relid)) As "Size",
+   pg_size_pretty(pg_total_relation_size(relid) - pg_relation_size(relid)) as "External Size"
+   FROM pg_catalog.pg_statio_user_tables ORDER BY pg_total_relation_size(relid) DESC;
+
+--------------------------  -------------------
+
+
