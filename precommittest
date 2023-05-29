@@ -1,0 +1,8 @@
+#!/bin/bash
+~/bin/grailscc-online
+echo "Prepare Test INIT"
+grails --offline prepare-test-db -init --hard --verbose
+echo "Prepare Test "
+grails --offline prepare-test --hard --verbose
+echo "RUN APP ..."
+grails -reloading run-app --offline
